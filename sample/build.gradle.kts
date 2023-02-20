@@ -21,11 +21,12 @@ android {
         val isSnapshot = libVersion.endsWith("SNAPSHOT")
         val appVersion = if (isSnapshot) {
             ByteArrayOutputStream().use { os ->
-                exec {
-                    setCommandLine("git", "describe", "--tags")
-                    standardOutput = os
-                }
-                os.toString()
+//                exec {
+//                    setCommandLine("git", "describe", "--tags")
+//                    standardOutput = os
+//                }
+//                os.toString()
+                "1-0"
             }
         } else libVersion
         val (version, commitCount) = if (isSnapshot) {
