@@ -177,7 +177,7 @@ class ZoomableState(
         get() = scale > minSnapScale && scale <= maxScale
 
     private var flingJob: Job? = null
-    internal var isGestureInProgress: Boolean by mutableStateOf(false)
+    var isGestureInProgress: Boolean by mutableStateOf(false)
         private set
 
     internal val horizontalEdge: HorizontalEdge
@@ -328,6 +328,18 @@ class ZoomableState(
         }
     }
 
+    suspend fun animateResetDismissOffset(
+        animationSpec: AnimationSpec<Float> = spring()
+    ) {
+        animate(
+            initialValue = dismissDragAbsoluteOffsetY,
+            targetValue = 0f,
+            animationSpec = animationSpec,
+        ) { value, _ ->
+            dismissDragAbsoluteOffsetY = value
+        }
+    }
+
     override fun toString(): String =
         "ZoomableState(translateX=${translationX.roundToTenths()}, " +
                 "translateY=${translationY.roundToTenths()}, scale=${scale.roundToTenths()})"
@@ -424,7 +436,7 @@ class OverZoomConfig(
         "OverZoomConfig(${minSnapScale.roundToTenths()}..${maxSnapScale.roundToTenths()})"
 }
 
-internal val OverZoomConfig.range: ClosedFloatingPointRange<Float>
+val OverZoomConfig.range: ClosedFloatingPointRange<Float>
     get() = minSnapScale..maxSnapScale
 
 private fun Float.roundToTenths(): Float {

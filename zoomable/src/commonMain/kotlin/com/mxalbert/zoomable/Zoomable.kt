@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -94,28 +95,32 @@ fun Zoomable(
     }
 }
 
-internal suspend fun PointerInputScope.detectZoomableGestures(
+suspend fun PointerInputScope.detectZoomableGestures(
     state: ZoomableState,
     onTap: ((Offset) -> Unit)?,
-    dismissGestureEnabled: State<Boolean>,
-    onDismiss: State<() -> Boolean>
+    dismissGestureEnabled: State<Boolean> = mutableStateOf(false),
+    onDismiss: State<() -> Boolean> = mutableStateOf({ false }),
 ): Unit = coroutineScope {
     launch {
         detectTapGestures(
             onTap = onTap,
-            onDoubleTap = { offset ->
-                launch {
-                    val isZooming = state.isZooming
-                    val targetScale = if (isZooming) state.minSnapScale else state.doubleTapScale
-                    state.animateScaleTo(
-                        targetScale = targetScale,
-                        targetTranslation = if (isZooming) {
-                            Offset.Zero
-                        } else {
-                            state.calculateTargetTranslation(offset) * targetScale
-                        }
-                    )
+            onDoubleTap = if (state.doubleTapScale > 0f) {
+                { offset ->
+                    launch {
+                        val isZooming = state.isZooming
+                        val targetScale = if (isZooming) state.minSnapScale else state.doubleTapScale
+                        state.animateScaleTo(
+                            targetScale = targetScale,
+                            targetTranslation = if (isZooming) {
+                                Offset.Zero
+                            } else {
+                                state.calculateTargetTranslation(offset) * targetScale
+                            }
+                        )
+                    }
                 }
+            } else {
+                null
             }
         )
     }
