@@ -1,6 +1,8 @@
 import com.vanniktech.maven.publish.JavadocJar
 import com.vanniktech.maven.publish.KotlinMultiplatform
 import com.vanniktech.maven.publish.SonatypeHost
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("multiplatform")
@@ -12,10 +14,17 @@ plugins {
 }
 
 kotlin {
+    jvm()
+
     android {
         publishLibraryVariants("release")
     }
-    jvm()
+
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+
+    @Suppress("UNUSED_VARIABLE")
     sourceSets {
         val commonMain by getting {
             dependencies {
@@ -25,9 +34,10 @@ kotlin {
             }
         }
         val commonTest by getting
+
         val jvmMain by getting {
             dependencies {
-                compileOnly(libs.compose.runtime.jetbrains)
+                implementation(libs.compose.runtime.jetbrains)
                 implementation(libs.compose.foundation.jetbrains)
                 implementation(libs.compose.ui.util.jetbrains)
             }
@@ -40,14 +50,16 @@ kotlin {
                 implementation(libs.coroutines.test)
             }
         }
+
         val androidMain by getting {
             dependencies {
-                compileOnly(libs.compose.runtime.jetpack)
+                // Directly depend on Jetpack Compose for Android
+                implementation(libs.compose.runtime.jetpack)
                 implementation(libs.compose.foundation.jetpack)
                 implementation(libs.compose.ui.util.jetpack)
             }
         }
-        val androidAndroidTest by getting {
+        val androidInstrumentedTest by getting {
             dependsOn(commonTest)
             dependencies {
                 implementation(libs.truth)
@@ -55,14 +67,27 @@ kotlin {
                 implementation(libs.compose.ui.test.manifest)
             }
         }
-        removeAll { sourceSet ->
-            sourceSet.name in setOf(
-                "androidAndroidTestRelease",
-                "androidTestFixtures",
-                "androidTestFixturesDebug",
-                "androidTestFixturesRelease",
-            )
+
+        val iosX64Main by getting
+        val iosArm64Main by getting
+        val iosSimulatorArm64Main by getting
+        val iosMain by creating {
+            dependsOn(commonMain)
+            iosX64Main.dependsOn(this)
+            iosArm64Main.dependsOn(this)
+            iosSimulatorArm64Main.dependsOn(this)
+            dependencies {
+                implementation(libs.compose.runtime.jetbrains)
+                implementation(libs.compose.foundation.jetbrains)
+                implementation(libs.compose.ui.util.jetbrains)
+            }
         }
+    }
+}
+
+tasks.withType(KotlinCompile::class).configureEach {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_1_8)
     }
 }
 
@@ -72,9 +97,10 @@ android {
     buildToolsVersion = libs.versions.buildTools.get()
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
 
+    buildFeatures.buildConfig = false
+
     defaultConfig {
         minSdk = libs.versions.sdk.min.get().toInt()
-        targetSdk = libs.versions.sdk.target.get().toInt()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
